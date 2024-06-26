@@ -30,18 +30,19 @@ class coRNN(BaseModel):
     cfg : Config
         The run configuration.
     """
-    module_parts = ['embedding_net', 'coRNN_cell', 'head']
+    module_parts = ['embedding_net', 'cell', 'head']
 
     def __init__(self, cfg: Config):
         super(coRNN, self).__init__(cfg=cfg)
 
         self.embedding_net = InputLayer(cfg)
+        self.input_size = self.embedding_net.statics_input_size + self.embedding_net.dynamics_input_size
 
         self.dt = 0.01
         self.gamma = 66
         self.epsilon = 15
 
-        self.cell = coRNNCell(n_inp=self.output_size,
+        self.cell = coRNNCell(n_inp=self.input_size,
                                     n_hid=cfg.hidden_size,
                                     dt=self.dt,
                                     gamma=self.gamma,
@@ -50,7 +51,7 @@ class coRNN(BaseModel):
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size
 
-        self.dropout = nn.Dropout(p=cfg.output_dropout) # not sure if we need
+        # self.dropout = nn.Dropout(p=cfg.output_dropout)
 
         self.head = get_head(cfg=cfg, n_in=cfg.hidden_size, n_out=self.output_size)
 
@@ -73,13 +74,13 @@ class coRNN(BaseModel):
         hy = torch.zeros(x_d.size(1), self.n_hid, device=x_d.device)
         hz = torch.zeros(x_d.size(1), self.n_hid, device=x_d.device)
 
-        output = torch.zeros(x_d.size(1), x_d.size(0), self.n_out, requires_grad=False)
 
-        for t in range(x.size(0)):
+        output_sequence = []
+        for t in range(x_d.size(0)):
             hy, hz = self.cell(x_d[t], hy, hz)
-            output[:,t,:] = self.head(self.dropout(hy)) # include dropout?
-
-        output = torch.squeeze(output)
-        pred = {'y_hat': output}
+            output_sequence.append(hy)
+        output_sequence = torch.stack(output_sequence)
+        output_sequence = output_sequence.transpose(0, 1)
+        pred = self.head(output_sequence)
 
         return pred
