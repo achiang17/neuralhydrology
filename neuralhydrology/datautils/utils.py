@@ -271,8 +271,8 @@ def get_frequency_factor(freq_one: str, freq_two: str) -> float:
     if freq_one == freq_two:
         return 1
 
-    offset_one = to_offset(freq_one)
-    offset_two = to_offset(freq_two)
+    offset_one = to_offset(freq_one.replace('H', 'h'))
+    offset_two = to_offset(freq_two.replace('H', 'h'))
     if offset_one.n < 0 or offset_two.n < 0:
         # Would be possible to implement, but we should never need negative frequencies, so it seems reasonable to
         # fail gracefully rather than to open ourselves to potential unexpected corner cases.
