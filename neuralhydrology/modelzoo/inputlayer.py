@@ -40,22 +40,22 @@ class InputLayer(nn.Module):
             frequencies = list(cfg.dynamic_inputs.keys())
             if len(frequencies) > 1:
                 raise ValueError('InputLayer only supports single-frequency data')
-            self.dynamics_input_size = len(cfg.dynamic_inputs[frequencies[0]])
+            dynamics_input_size = len(cfg.dynamic_inputs[frequencies[0]])
         else:
-            self.dynamics_input_size = len(cfg.dynamic_inputs)
+            dynamics_input_size = len(cfg.dynamic_inputs)
 
         self._num_autoregression_inputs = 0
         if cfg.autoregressive_inputs:
             self._num_autoregression_inputs = len(cfg.autoregressive_inputs)
 
-        self.statics_input_size = len(cfg.static_attributes + cfg.hydroatlas_attributes + cfg.evolving_attributes)
+        statics_input_size = len(cfg.static_attributes + cfg.hydroatlas_attributes + cfg.evolving_attributes)
         if cfg.use_basin_id_encoding:
-            self.statics_input_size += cfg.number_of_basins
+            statics_input_size += cfg.number_of_basins
 
         self.statics_embedding, self.statics_output_size = \
-            self._get_embedding_net(cfg.statics_embedding, self.statics_input_size, 'statics')
+            self._get_embedding_net(cfg.statics_embedding, statics_input_size, 'statics')
         self.dynamics_embedding, self.dynamics_output_size = \
-            self._get_embedding_net(cfg.dynamics_embedding, self.dynamics_input_size, 'dynamics')
+            self._get_embedding_net(cfg.dynamics_embedding, dynamics_input_size, 'dynamics')
 
         if cfg.statics_embedding is None:
             self.statics_embedding_p_dropout = 0.0  # if net has no statics dropout we treat is as zero

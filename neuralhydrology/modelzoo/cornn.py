@@ -1,4 +1,5 @@
 from typing import Dict
+from collections import defaultdict
 
 import torch
 from torch import nn
@@ -36,13 +37,14 @@ class coRNN(BaseModel):
         super(coRNN, self).__init__(cfg=cfg)
 
         self.embedding_net = InputLayer(cfg)
-        self.input_size = self.embedding_net.statics_input_size + self.embedding_net.dynamics_input_size
 
-        self.dt = 0.01
-        self.gamma = 66
-        self.epsilon = 15
+        self.dt = 5.3e-2
+        self.gamma = 1.7
+        self.epsilon = 4
 
-        self.cell = coRNNCell(n_inp=self.input_size,
+        print(self.embedding_net.output_size)
+
+        self.cell = coRNNCell(n_inp=self.embedding_net.output_size,
                                     n_hid=cfg.hidden_size,
                                     dt=self.dt,
                                     gamma=self.gamma,
@@ -51,7 +53,7 @@ class coRNN(BaseModel):
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size
 
-        # self.dropout = nn.Dropout(p=cfg.output_dropout)
+        self.dropout = nn.Dropout(p=cfg.output_dropout)
 
         self.head = get_head(cfg=cfg, n_in=cfg.hidden_size, n_out=self.output_size)
 
@@ -69,18 +71,20 @@ class coRNN(BaseModel):
             Model outputs and intermediate states as a dictionary.
                 - `y_hat`: model predictions of shape [batch size, sequence length, number of target variables].
         """
-        x_d = self.embedding_net(data)
+        x_d = self.embedding_net(data) #[seq_len, batch_size, features]
 
-        hy = torch.zeros(x_d.size(1), self.n_hid, device=x_d.device)
-        hz = torch.zeros(x_d.size(1), self.n_hid, device=x_d.device)
+        seq_len, batch_size, _ = x_d.size()
 
+        hy = x_d.data.new(batch_size, self.n_hid).zero_()
+        hz = x_d.data.new(batch_size, self.n_hid).zero_()
 
-        output_sequence = []
+        output = defaultdict(list)
         for t in range(x_d.size(0)):
             hy, hz = self.cell(x_d[t], hy, hz)
-            output_sequence.append(hy)
-        output_sequence = torch.stack(output_sequence)
-        output_sequence = output_sequence.transpose(0, 1)
-        pred = self.head(output_sequence)
+            output['hy'].append(hy)
+            output['hz'].append(hz)
 
+        # stack to [batch_size, seq_len, hidden size]
+        pred = {key: torch.stack(val,1) for key, val in output.items()}
+        pred.update(self.head(self.dropout(pred['hy'])))
         return pred
