@@ -42,8 +42,6 @@ class coRNN(BaseModel):
         self.gamma = 1.7
         self.epsilon = 4
 
-        print(self.embedding_net.output_size)
-
         self.cell = coRNNCell(n_inp=self.embedding_net.output_size,
                                     n_hid=cfg.hidden_size,
                                     dt=self.dt,
@@ -53,7 +51,7 @@ class coRNN(BaseModel):
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size
 
-        self.dropout = nn.Dropout(p=cfg.output_dropout)
+        # self.dropout = nn.Dropout(p=cfg.output_dropout)
 
         self.head = get_head(cfg=cfg, n_in=cfg.hidden_size, n_out=self.output_size)
 
@@ -86,5 +84,5 @@ class coRNN(BaseModel):
 
         # stack to [batch_size, seq_len, hidden size]
         pred = {key: torch.stack(val,1) for key, val in output.items()}
-        pred.update(self.head(self.dropout(pred['hy'])))
+        pred.update(self.head(pred['hy']))
         return pred
