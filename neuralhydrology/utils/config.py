@@ -212,6 +212,7 @@ class Config(object):
 
     @staticmethod
     def _read_and_parse_config(yml_path: Path):
+        print(yml_path)
         if yml_path.exists():
             with yml_path.open('r') as fp:
                 yaml = YAML(typ="safe")
@@ -458,6 +459,20 @@ class Config(object):
     @property
     def model(self) -> str:
         return self._get_value_verbose("model")
+    
+    # coRNN hyperparamters
+    @property
+    def dt(self) -> float:
+        return self._cfg.get("dt", 0.1)
+
+    @property
+    def gamma(self) -> float:
+        return self._cfg.get("gamma", 1.0)
+
+    @property
+    def eps(self) -> float:
+        return self._cfg.get("eps", 1.0)
+    # end coRNN hyperparameters
 
     @property
     def n_distributions(self) -> int:
@@ -753,6 +768,7 @@ class Config(object):
             Level of verbosity.
         """
         return self._cfg.get("verbose", 1)
+
 
     def _get_embedding_spec(self, embedding_spec: dict) -> dict:
         if isinstance(embedding_spec, bool) and embedding_spec:  #

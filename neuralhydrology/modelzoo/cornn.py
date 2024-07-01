@@ -38,15 +38,11 @@ class coRNN(BaseModel):
 
         self.embedding_net = InputLayer(cfg)
 
-        self.dt = 5.3e-2
-        self.gamma = 1.7
-        self.epsilon = 4
-
         self.cell = coRNNCell(n_inp=self.embedding_net.output_size,
                                     n_hid=cfg.hidden_size,
-                                    dt=self.dt,
-                                    gamma=self.gamma,
-                                    epsilon=self.epsilon)
+                                    dt=cfg.dt,
+                                    gamma=cfg.gamma,
+                                    epsilon=cfg.eps)
         
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size
