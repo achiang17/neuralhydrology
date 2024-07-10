@@ -10,14 +10,18 @@ from neuralhydrology.modelzoo.basemodel import BaseModel
 from neuralhydrology.utils.config import Config
 
 class coRNNCell(nn.Module):
-    def __init__(self, n_inp, n_hid, dt, gamma, epsilon):
+    def __init__(self, n_inp, n_hid, dt, gamma, epsilon, intermediate_factor):
         super(coRNNCell, self).__init__()
         self.dt = dt
         self.gamma = gamma
         self.epsilon = epsilon
-        self.i2h = nn.Linear(n_inp + n_hid + n_hid, n_hid)
+        self.intermediate_factor = intermediate_factor
+        self.i2h = nn.Linear(intermediate_factor * n_inp + n_hid + n_hid, n_hid)
+        self.i2m = nn.Linear(n_inp, intermediate_factor * n_inp)
 
     def forward(self, x, hy, hz):
+        if self.intermediate_factor != 1:
+            x = torch.tanh(self.i2m(x))
         hz = hz + self.dt * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
                              - self.gamma * hy - self.epsilon * hz)
         hy = hy + self.dt * hz
@@ -42,7 +46,8 @@ class coRNN(BaseModel):
                                     n_hid=cfg.hidden_size,
                                     dt=cfg.dt,
                                     gamma=cfg.gamma,
-                                    epsilon=cfg.eps)
+                                    epsilon=cfg.eps,
+                                    intermediate_factor=cfg.intermediate_factor)
         
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size

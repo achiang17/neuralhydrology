@@ -472,6 +472,10 @@ class Config(object):
     @property
     def eps(self) -> float:
         return self._cfg.get("eps", 1.0)
+
+    @property
+    def intermediate_factor(self) -> int:
+        return self._cfg.get("intermediate_factor", 1)
     # end coRNN hyperparameters
 
     @property
