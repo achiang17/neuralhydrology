@@ -476,6 +476,10 @@ class Config(object):
     @property
     def intermediate_factor(self) -> int:
         return self._cfg.get("intermediate_factor", 1)
+
+    @property
+    def adaptive_learning(self) -> bool:
+        return self._cfg.get("adaptive_learning", False)
     # end coRNN hyperparameters
 
     @property
