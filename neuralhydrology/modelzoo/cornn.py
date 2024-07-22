@@ -92,5 +92,5 @@ class coRNN(BaseModel):
         # stack to [batch_size, seq_len, hidden size]
         pred = {key: torch.stack(val,1) for key, val in output.items()}
         pred.update(self.head(pred['hy']))
-        # pred['y_hat'] = torch.square(pred['y_hat'])
+        pred['y_hat'] = torch.square(pred['y_hat']) - 4
         return pred
