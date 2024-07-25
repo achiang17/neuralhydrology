@@ -259,8 +259,8 @@ class BaseTrainer(object):
         optimizer_path = self.cfg.base_run_dir / f"optimizer_state_epoch{epoch}.pt"
 
         LOGGER.info(f"Continue training from epoch {int(epoch)}")
-        self.model.load_state_dict(torch.load(weight_path, map_location=self.device))
-        self.optimizer.load_state_dict(torch.load(str(optimizer_path), map_location=self.device))
+        self.model.load_state_dict(torch.load(weight_path, map_location=self.device, weights_only=True))
+        self.optimizer.load_state_dict(torch.load(str(optimizer_path), map_location=self.device, weights_only=True))
 
     def _save_weights_and_optimizer(self, epoch: int):
         weight_path = self.cfg.run_dir / f"model_epoch{epoch:03d}.pt"
