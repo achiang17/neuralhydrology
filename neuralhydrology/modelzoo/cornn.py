@@ -15,21 +15,25 @@ class coRNNCell(nn.Module):
         self.dt = dt
         self.gamma = gamma
         self.epsilon = epsilon
-        self.intermediate_factor = intermediate_factor
-        self.adaptive_learning = adaptive_learning
-        self.i2h = nn.Linear(intermediate_factor * n_inp + n_hid + n_hid, n_hid)
-        self.i2m = nn.Linear(n_inp, intermediate_factor * n_inp)
-        self.c = nn.Parameter(torch.randn(1))
+        self.i2h = nn.Linear(n_inp + n_hid + n_hid, n_hid)
+        # self.intermediate_factor = intermediate_factor
+        # self.adaptive_learning = adaptive_learning
+        # self.i2h = nn.Linear(intermediate_factor * n_inp + n_hid + n_hid, n_hid)
+        # self.i2m = nn.Linear(n_inp, intermediate_factor * n_inp)
+        # self.c = nn.Parameter(torch.randn(1))
 
     def forward(self, x, hy, hz):
-        if self.intermediate_factor != 1:
-            x = torch.tanh(self.i2m(x))
+        # if self.intermediate_factor != 1:
+        #     x = torch.tanh(self.i2m(x))
         
-        sigma_hat = (1/6) + (1/6) * torch.tanh(self.c / 2) if self.adaptive_learning else 1
+        # sigma_hat = (1/6) + (1/6) * torch.tanh(self.c / 2) if self.adaptive_learning else 1
+        # hz = hz + (self.dt * sigma_hat) * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
+        #                      - self.gamma * hy - self.epsilon * hz)
+        # hy = hy + (self.dt * sigma_hat) * hz
 
-        hz = hz + (self.dt * sigma_hat) * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
+        hz = hz + self.dt * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
                              - self.gamma * hy - self.epsilon * hz)
-        hy = hy + (self.dt * sigma_hat) * hz
+        hy = hy + self.dt * hz
         return hy, hz
 
 class coRNN(BaseModel):
@@ -92,5 +96,5 @@ class coRNN(BaseModel):
         # stack to [batch_size, seq_len, hidden size]
         pred = {key: torch.stack(val,1) for key, val in output.items()}
         pred.update(self.head(pred['hy']))
-        pred['y_hat'] = torch.square(pred['y_hat']) - 4
+        # pred['y_hat'] = torch.square(pred['y_hat']) - 4
         return pred

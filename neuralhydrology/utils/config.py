@@ -480,6 +480,10 @@ class Config(object):
     @property
     def adaptive_learning(self) -> bool:
         return self._cfg.get("adaptive_learning", False)
+
+    @property
+    def loss_eps(self) -> float:
+        return self._cfg.get("loss_eps", 0.1)
     # end coRNN hyperparameters
 
     @property

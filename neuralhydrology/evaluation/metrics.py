@@ -76,7 +76,6 @@ def nse(obs: DataArray, sim: DataArray) -> float:
         discussion of principles". Journal of Hydrology. 10 (3): 282-290. doi:10.1016/0022-1694(70)90255-6.
 
     """
-
     # verify inputs
     _validate_inputs(obs, sim)
 
@@ -112,7 +111,7 @@ def mse(obs: DataArray, sim: DataArray) -> float:
         Mean squared error. 
 
     """
-
+    
     # verify inputs
     _validate_inputs(obs, sim)
 

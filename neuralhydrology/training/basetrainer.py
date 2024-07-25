@@ -290,6 +290,9 @@ class BaseTrainer(object):
 
             # get predictions
             predictions = self.model(data)
+            # print(f"predictions y_hat: {predictions['y_hat']}")
+
+            pre_data = data
 
             if self.noise_sampler_y is not None:
                 for key in filter(lambda k: 'y' in k, data.keys()):
@@ -298,7 +301,6 @@ class BaseTrainer(object):
                     data[key] += (data[key] + self._target_mean / self._target_std) * noise.to(self.device)
 
             loss, all_losses = self.loss_obj(predictions, data)
-            print(f"loss in train_epoch(): {loss}")
 
             # early stop training if loss is NaN
             if torch.isnan(loss):
@@ -316,10 +318,6 @@ class BaseTrainer(object):
                 loss.backward()
 
                 if self.cfg.clip_gradient_norm is not None:
-                    print(f"enter clip_gradient_norm if statement")
-                    print(f"model parameters: {self.model.parameters()}")
-                    print(f"cfg.clip_gradient_norm: {self.cfg.clip_gradient_norm}")
-                    # This might be the error
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.clip_gradient_norm)
 
                 # update weights

@@ -298,7 +298,6 @@ class BaseTester(object):
                             # clip negative predictions to zero, if variable is listed in config 'clip_target_to_zero'
                             if target_variable in self.cfg.clip_targets_to_zero:
                                 sim = xarray.where(sim < 0, 0, sim)
-
                             if 'samples' in sim.dims:
                                 sim = sim.mean(dim='samples')
 

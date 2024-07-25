@@ -118,23 +118,23 @@ class BaseLoss(torch.nn.Module):
                 kwargs_sub = self._subset_additional_data(kwargs, n_target)
 
                 loss = self._get_loss(target_pred, target_gt, **kwargs_sub)
-                print(f"loss form MSE get loss func: {loss}")
-                print(f"loss * weight : {loss * weight}")
+                # print(f"loss form MSE get loss func: {loss}")
+                # print(f"loss * weight : {loss * weight}")
                 losses.append(loss * weight)
 
         loss = torch.sum(torch.stack(losses))
         total_loss = loss.clone()
-        print(f"total loss: {total_loss}")
+        # print(f"total loss: {total_loss}")
         all_losses = defaultdict(lambda: 0)
         all_losses['loss'] = loss
-        print(f"regularization terms: {self._regularization_terms}")
+        # print(f"regularization terms: {self._regularization_terms}")
         for reg_module in self._regularization_terms:
             reg_out = reg_module(prediction_sub, ground_truth_sub,
                                  {k: v for k, v in prediction.items() if k not in self._prediction_keys})
             total_loss += reg_module.weight * reg_out
             # One name may appear multiple times. We add all regularizations of the same name for logging purposes.
             all_losses[reg_module.name] += reg_out
-        print(f"total loss after regularization: {total_loss}")
+        # print(f"total loss after regularization: {total_loss}")
         all_losses['total_loss'] = total_loss
         return total_loss, all_losses
 
