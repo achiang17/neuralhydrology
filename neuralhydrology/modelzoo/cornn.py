@@ -81,7 +81,7 @@ class coRNN(BaseModel):
                 - `y_hat`: model predictions of shape [batch size, sequence length, number of target variables].
         """
         x_d = self.embedding_net(data) #[seq_len, batch_size, features]
-
+                
         seq_len, batch_size, _ = x_d.size()
 
         hy = x_d.data.new(batch_size, self.n_hid).zero_()

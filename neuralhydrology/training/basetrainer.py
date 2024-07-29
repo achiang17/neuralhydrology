@@ -279,6 +279,9 @@ class BaseTrainer(object):
 
         # Iterate in batches over training set
         nan_count = 0
+        neg_count = 0
+        total_count = 0
+        neg_mean = 0
         for data in pbar:
 
             for key in data.keys():
@@ -290,7 +293,6 @@ class BaseTrainer(object):
 
             # get predictions
             predictions = self.model(data)
-            # print(f"predictions y_hat: {predictions['y_hat']}")
 
             pre_data = data
 
@@ -301,6 +303,14 @@ class BaseTrainer(object):
                     data[key] += (data[key] + self._target_mean / self._target_std) * noise.to(self.device)
 
             loss, all_losses = self.loss_obj(predictions, data)
+
+            msk = ~torch.isnan(data['y'])
+            gt = data['y'][msk]
+            neg_msk = gt < 0
+            gt_neg = gt[neg_msk]
+            neg_mean += gt_neg.sum().item()
+            neg_count += neg_msk.sum().item()
+            total_count += msk.sum().item()
 
             # early stop training if loss is NaN
             if torch.isnan(loss):
@@ -326,6 +336,10 @@ class BaseTrainer(object):
             pbar.set_postfix_str(f"Loss: {loss.item():.4f}")
 
             self.experiment_logger.log_step(**{k: v.item() for k, v in all_losses.items()})
+        
+        print(f"neg count: {neg_count}")
+        print(f"neg mean: {neg_mean/neg_count}")
+        print(f"total count: {total_count}")
 
     def _set_random_seeds(self):
         if self.cfg.seed is None:
