@@ -10,6 +10,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 import neuralhydrology.training.loss as loss
 from neuralhydrology.datasetzoo import get_dataset
@@ -142,6 +143,7 @@ class BaseTrainer(object):
         if self.cfg.is_finetuning:
             # Load scaler from pre-trained model.
             self._scaler = load_scaler(self.cfg.base_run_dir)
+        print(f"self.scaler : {self._scaler}")
 
         # Initialize dataset before the model is loaded.
         ds = self._get_dataset()
@@ -193,6 +195,7 @@ class BaseTrainer(object):
             self.validator = self._get_tester()
 
         if self.cfg.target_noise_std is not None:
+            print(f"enters target_noise_std if statement")
             self.noise_sampler_y = torch.distributions.Normal(loc=0, scale=self.cfg.target_noise_std)
             self._target_mean = torch.from_numpy(
                 ds.scaler["xarray_feature_center"][self.cfg.target_variables].to_array().values).to(self.device)
@@ -279,22 +282,23 @@ class BaseTrainer(object):
 
         # Iterate in batches over training set
         nan_count = 0
+
         neg_count = 0
         total_count = 0
         neg_mean = 0
-        for data in pbar:
+        all_data = torch.empty((0)).to(self.device)
 
+        for data in pbar:
             for key in data.keys():
                 if not key.startswith('date'):
                     data[key] = data[key].to(self.device)
 
+            pre_data = data
             # apply possible pre-processing to the batch before the forward pass
             data = self.model.pre_model_hook(data, is_train=True)
-
+            
             # get predictions
             predictions = self.model(data)
-
-            pre_data = data
 
             if self.noise_sampler_y is not None:
                 for key in filter(lambda k: 'y' in k, data.keys()):
@@ -304,13 +308,16 @@ class BaseTrainer(object):
 
             loss, all_losses = self.loss_obj(predictions, data)
 
-            msk = ~torch.isnan(data['y'])
-            gt = data['y'][msk]
-            neg_msk = gt < 0
-            gt_neg = gt[neg_msk]
-            neg_mean += gt_neg.sum().item()
-            neg_count += neg_msk.sum().item()
-            total_count += msk.sum().item()
+            # msk = ~torch.isnan(data['y'])
+            # gt = data['y'][msk]
+            # all_data = torch.cat((all_data, gt), 0)
+            
+            
+            # neg_msk = gt < 0
+            # gt_neg = gt[neg_msk]
+            # neg_mean += gt_neg.sum().item()
+            # neg_count += neg_msk.sum().item()
+            # total_count += msk.sum().item()
 
             # early stop training if loss is NaN
             if torch.isnan(loss):
@@ -336,10 +343,27 @@ class BaseTrainer(object):
             pbar.set_postfix_str(f"Loss: {loss.item():.4f}")
 
             self.experiment_logger.log_step(**{k: v.item() for k, v in all_losses.items()})
+
+        # print(f"neg count: {neg_count}")
+        # print(f"neg mean: {neg_mean/neg_count}")
+        # print(f"total count: {total_count}")
+        # all_data_cpu = all_data.cpu()
+        # bin_edges = torch.arange(-1, 2.1, 0.1, device='cpu')
+
+        # hist, bin_edges = torch.histogram(all_data_cpu, bins=bin_edges)
+
+        # hist_np = hist.cpu().numpy()
+        # bin_edges_np = bin_edges.cpu().numpy()
+
+        # plt.figure()
+        # plt.hist(bin_edges_np[:-1], bins=bin_edges_np, weights=hist_np, edgecolor='black')
+        # plt.xlabel('Value')
+        # plt.ylabel('Frequency')
+        # plt.title('Histogram')
+        # plt.savefig('nh_histogram.png')
+        # plt.close()
         
-        print(f"neg count: {neg_count}")
-        print(f"neg mean: {neg_mean/neg_count}")
-        print(f"total count: {total_count}")
+
 
     def _set_random_seeds(self):
         if self.cfg.seed is None:

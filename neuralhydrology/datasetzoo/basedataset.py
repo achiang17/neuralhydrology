@@ -17,6 +17,7 @@ from numba import njit, prange
 from ruamel.yaml import YAML
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from neuralhydrology.datautils import utils
 from neuralhydrology.utils.config import Config
@@ -91,6 +92,7 @@ class BaseDataset(Dataset):
         self.scaler = scaler
         # don't compute scale when finetuning
         if is_train and not scaler:
+            print(f"self._compute_scale = True")
             self._compute_scaler = True
         else:
             self._compute_scaler = False
@@ -668,10 +670,30 @@ class BaseDataset(Dataset):
             # get feature-wise center and scale values for the feature normalization
             self._setup_normalization(xr)
 
+        # print("Create xr dataset")
+        # print(f"xr: {xr}")
+        # self.create_histogram(xr, "pre_normalization_xr.png")
+        
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
+        
+        # self.create_histogram(xr, "post_normalization_xr.png")
 
         self._create_lookup_table(xr)
+
+    def create_histogram(self, xr, name):
+        streamflow_data = xr['streamflow'].values.flatten()
+        streamflow_data = streamflow_data[~np.isnan(streamflow_data)]
+        # bin_edges = np.arange(-1, 2.1, 0.1)
+        hist, bin_edges = np.histogram(streamflow_data, bins=70)
+
+        plt.figure()
+        plt.hist(streamflow_data, bins=bin_edges, edgecolor='black')
+        plt.title('Histogram of Streamflow')
+        plt.xlabel('Streamflow')
+        plt.ylabel('Frequency')
+        plt.savefig(name)
+        plt.close()
 
     def _setup_normalization(self, xr: xarray.Dataset):
         # default center and scale values are feature mean and std

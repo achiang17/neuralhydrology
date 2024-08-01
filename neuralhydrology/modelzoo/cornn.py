@@ -17,23 +17,29 @@ class coRNNCell(nn.Module):
         self.epsilon = epsilon
         self.i2h = nn.Linear(n_inp + n_hid + n_hid, n_hid)
         # self.intermediate_factor = intermediate_factor
-        # self.adaptive_learning = adaptive_learning
         # self.i2h = nn.Linear(intermediate_factor * n_inp + n_hid + n_hid, n_hid)
         # self.i2m = nn.Linear(n_inp, intermediate_factor * n_inp)
-        # self.c = nn.Parameter(torch.randn(1))
+        self.adaptive_learning = adaptive_learning
+        self.c = nn.Parameter(torch.randn(n_hid))
 
     def forward(self, x, hy, hz):
         # if self.intermediate_factor != 1:
         #     x = torch.tanh(self.i2m(x))
-        
-        # sigma_hat = (1/6) + (1/6) * torch.tanh(self.c / 2) if self.adaptive_learning else 1
-        # hz = hz + (self.dt * sigma_hat) * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
-        #                      - self.gamma * hy - self.epsilon * hz)
-        # hy = hy + (self.dt * sigma_hat) * hz
 
-        hz = hz + self.dt * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
+        dt_bound = (2*self.epsilon - 1)/(self.gamma + self.epsilon**2)
+
+        if self.adaptive_learning:
+            sigma_hat = (dt_bound/2) + (dt_bound/2) * torch.tanh(self.c / 2)
+        else:
+            sigma_hat = 0.5 + 0.5 * torch.tanh(self.c / 2)
+    
+        hz = hz + (self.dt * sigma_hat) * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
                              - self.gamma * hy - self.epsilon * hz)
-        hy = hy + self.dt * hz
+        hy = hy + (self.dt * sigma_hat) * hz
+
+        # hz = hz + self.dt * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
+        #                      - self.gamma * hy - self.epsilon * hz)
+        # hy = hy + self.dt * hz
         return hy, hz
 
 class coRNN(BaseModel):
