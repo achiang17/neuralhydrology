@@ -662,7 +662,7 @@ class BaseDataset(Dataset):
 
         xr = self._load_or_create_xarray_dataset()
 
-        if self.cfg.loss.lower() in ['nse', 'weightednse']:
+        if self.cfg.loss.lower() in ['nse', 'weightednse', 'nse_mse']:
             # get the std of the discharge for each basin, which is needed for the (weighted) NSE loss.
             self._calculate_per_basin_std(xr)
 
@@ -672,7 +672,7 @@ class BaseDataset(Dataset):
 
         # print("Create xr dataset")
         # print(f"xr: {xr}")
-        # self.create_histogram(xr, "pre_normalization_xr.png")
+        self.create_histogram(np.sqrt(xr), "xr_sqrt_histogram.png")
         
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
