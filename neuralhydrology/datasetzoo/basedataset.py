@@ -662,7 +662,7 @@ class BaseDataset(Dataset):
 
         xr = self._load_or_create_xarray_dataset()
 
-        if self.cfg.loss.lower() in ['nse', 'weightednse', 'nse_mse']:
+        if self.cfg.loss.lower() in ['nse', 'weightednse', 'customnse', 'scalednse']:
             # get the std of the discharge for each basin, which is needed for the (weighted) NSE loss.
             self._calculate_per_basin_std(xr)
 
@@ -672,25 +672,25 @@ class BaseDataset(Dataset):
 
         # print("Create xr dataset")
         # print(f"xr: {xr}")
-        self.create_histogram(np.sqrt(xr), "xr_sqrt_histogram.png")
+        # self.create_histogram(np.sqrt(xr), "xr_sqrt_histogram.png")
         
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
-        
-        # self.create_histogram(xr, "post_normalization_xr.png")
+        # print(f"xr: {xr}")
+        # self.create_histogram(xr, "post_normalization_xr_sro_sum.png")
 
         self._create_lookup_table(xr)
 
     def create_histogram(self, xr, name):
-        streamflow_data = xr['streamflow'].values.flatten()
+        streamflow_data = xr['sro_sum'].values.flatten()
         streamflow_data = streamflow_data[~np.isnan(streamflow_data)]
         # bin_edges = np.arange(-1, 2.1, 0.1)
         hist, bin_edges = np.histogram(streamflow_data, bins=70)
 
         plt.figure()
         plt.hist(streamflow_data, bins=bin_edges, edgecolor='black')
-        plt.title('Histogram of Streamflow')
-        plt.xlabel('Streamflow')
+        plt.title('Histogram of sro_sum')
+        plt.xlabel('sro_sum')
         plt.ylabel('Frequency')
         plt.savefig(name)
         plt.close()

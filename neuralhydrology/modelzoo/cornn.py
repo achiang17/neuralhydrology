@@ -10,7 +10,7 @@ from neuralhydrology.modelzoo.basemodel import BaseModel
 from neuralhydrology.utils.config import Config
 
 class coRNNCell(nn.Module):
-    def __init__(self, n_inp, n_hid, dt, gamma, epsilon, intermediate_factor, adaptive_learning):
+    def __init__(self, n_inp, n_hid, dt, gamma, epsilon, intermediate_factor, adaptive_learning, dt_bound):
         super(coRNNCell, self).__init__()
         self.dt = dt
         self.gamma = gamma
@@ -21,17 +21,21 @@ class coRNNCell(nn.Module):
         # self.i2m = nn.Linear(n_inp, intermediate_factor * n_inp)
         self.adaptive_learning = adaptive_learning
         self.c = nn.Parameter(torch.randn(n_hid))
+        self.dt_bound = dt_bound
 
     def forward(self, x, hy, hz):
         # if self.intermediate_factor != 1:
         #     x = torch.tanh(self.i2m(x))
 
-        dt_bound = (2*self.epsilon - 1)/(self.gamma + self.epsilon**2)
+        if self.dt_bound == 1.0:
+            dt_bound = (2*self.epsilon - 1)/(self.gamma + self.epsilon**2)
+        else:
+            dt_bound = self.dt_bound
 
         if self.adaptive_learning:
             sigma_hat = (dt_bound/2) + (dt_bound/2) * torch.tanh(self.c / 2)
         else:
-            sigma_hat = 0.5 + 0.5 * torch.tanh(self.c / 2)
+            sigma_hat = 1
     
         hz = hz + (self.dt * sigma_hat) * (torch.tanh(self.i2h(torch.cat((x, hz, hy), 1)))
                              - self.gamma * hy - self.epsilon * hz)
@@ -63,7 +67,8 @@ class coRNN(BaseModel):
                                     gamma=cfg.gamma,
                                     epsilon=cfg.eps,
                                     intermediate_factor=cfg.intermediate_factor,
-                                    adaptive_learning=cfg.adaptive_learning)
+                                    adaptive_learning=cfg.adaptive_learning,
+                                    dt_bound = cfg.dt_bound)
         
         self.n_hid = cfg.hidden_size
         self.n_out = self.output_size
@@ -95,6 +100,7 @@ class coRNN(BaseModel):
 
         output = defaultdict(list)
         for t in range(x_d.size(0)):
+            # transform x_d[t] surface runoff with square root + 1?
             hy, hz = self.cell(x_d[t], hy, hz)
             output['hy'].append(hy)
             output['hz'].append(hz)
@@ -102,5 +108,5 @@ class coRNN(BaseModel):
         # stack to [batch_size, seq_len, hidden size]
         pred = {key: torch.stack(val,1) for key, val in output.items()}
         pred.update(self.head(pred['hy']))
-        # pred['y_hat'] = torch.square(pred['y_hat']) - 4
+        # pred['y_hat'] = torch.square(pred['y_hat']) - 2
         return pred
