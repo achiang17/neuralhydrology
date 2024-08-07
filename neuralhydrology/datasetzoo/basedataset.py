@@ -667,22 +667,25 @@ class BaseDataset(Dataset):
         if self._compute_scaler:
             # get feature-wise center and scale values for the feature normalization
             self._setup_normalization(xr)
-        
+
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
-        
-        for feature in xr.keys():
-            self.create_histogram(xr, feature)
+
+        for feature in ['sro_sum', 'ssro_sum', 'streamflow']:
+            # self.create_histogram(xr, feature)
+            xr[feature] = np.log(xr[feature] + 0.001 + (self.scaler["xarray_feature_center"][feature] / self.scaler["xarray_feature_scale"][feature]))
 
         self._create_lookup_table(xr)
 
     def create_histogram(self, xr, feature):
+        xr[feature] = np.log(xr[feature] + 0.001 + (self.scaler["xarray_feature_center"][feature] / self.scaler["xarray_feature_scale"][feature]))
+        
         data = xr[feature].values.flatten()
         data = data[~np.isnan(data)]
         
-        print(feature)
+        count = (data <= 0).sum().item()
+        print(f"count <= 0 {feature}: {count}")
 
-        data = np.log(data - np.min(data) + 0.0001)
         hist, bin_edges = np.histogram(data, bins=50)
 
         plt.figure()
