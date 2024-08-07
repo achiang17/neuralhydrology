@@ -82,7 +82,7 @@ class BaseDataset(Dataset):
 
             if cfg.use_basin_id_encoding and not id_to_int:
                 raise ValueError("For basin id embedding, the id_to_int dictionary has to be passed anything but train")
-
+        
         if basin is None:
             self.basins = utils.load_basin_file(getattr(cfg, f"{period}_basin_file"))
         else:
@@ -164,7 +164,6 @@ class BaseDataset(Dataset):
         if self.id_to_int:
             sample['x_one_hot'] = torch.nn.functional.one_hot(torch.tensor(self.id_to_int[basin]),
                                                               num_classes=len(self.id_to_int)).to(torch.float32)
-
         return sample
 
     def _load_basin_data(self, basin: str) -> pd.DataFrame:
@@ -447,7 +446,6 @@ class BaseDataset(Dataset):
             if not self.frequencies:
                 native_frequency = utils.infer_frequency(xr["date"].values)
                 self.frequencies = [native_frequency]
-
         return xr
 
     def _save_xarray_dataset(self, xr: xarray.Dataset):
@@ -669,30 +667,30 @@ class BaseDataset(Dataset):
         if self._compute_scaler:
             # get feature-wise center and scale values for the feature normalization
             self._setup_normalization(xr)
-
-        # print("Create xr dataset")
-        # print(f"xr: {xr}")
-        # self.create_histogram(np.sqrt(xr), "xr_sqrt_histogram.png")
         
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
-        # print(f"xr: {xr}")
-        # self.create_histogram(xr, "post_normalization_xr_sro_sum.png")
+        
+        for feature in xr.keys():
+            self.create_histogram(xr, feature)
 
         self._create_lookup_table(xr)
 
-    def create_histogram(self, xr, name):
-        streamflow_data = xr['sro_sum'].values.flatten()
-        streamflow_data = streamflow_data[~np.isnan(streamflow_data)]
-        # bin_edges = np.arange(-1, 2.1, 0.1)
-        hist, bin_edges = np.histogram(streamflow_data, bins=70)
+    def create_histogram(self, xr, feature):
+        data = xr[feature].values.flatten()
+        data = data[~np.isnan(data)]
+        
+        print(feature)
+
+        data = np.log(data - np.min(data) + 0.0001)
+        hist, bin_edges = np.histogram(data, bins=50)
 
         plt.figure()
-        plt.hist(streamflow_data, bins=bin_edges, edgecolor='black')
-        plt.title('Histogram of sro_sum')
-        plt.xlabel('sro_sum')
+        plt.hist(data, bins=bin_edges, edgecolor='black')
+        plt.title(f'Histogram of {feature}')
+        plt.xlabel(feature)
         plt.ylabel('Frequency')
-        plt.savefig(name)
+        plt.savefig(f"histograms/log_{feature}_hist.png")
         plt.close()
 
     def _setup_normalization(self, xr: xarray.Dataset):

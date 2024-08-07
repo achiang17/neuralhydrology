@@ -293,7 +293,6 @@ class BaseTrainer(object):
                 if not key.startswith('date'):
                     data[key] = data[key].to(self.device)
 
-            pre_data = data
             # apply possible pre-processing to the batch before the forward pass
             data = self.model.pre_model_hook(data, is_train=True)
             
