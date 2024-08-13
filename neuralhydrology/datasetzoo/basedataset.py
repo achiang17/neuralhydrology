@@ -92,7 +92,6 @@ class BaseDataset(Dataset):
         self.scaler = scaler
         # don't compute scale when finetuning
         if is_train and not scaler:
-            print(f"self._compute_scale = True")
             self._compute_scaler = True
         else:
             self._compute_scaler = False
@@ -634,6 +633,9 @@ class BaseDataset(Dataset):
 
             # fix the order of the columns to be alphabetically
             df = df.sort_index(axis=1)
+            
+            # save static attributes to .csv
+            # df.loc[self.basins].to_csv("static_attributes_usa_time_split.csv")
 
             # calculate statistics and normalize features
             if self._compute_scaler:
@@ -671,20 +673,15 @@ class BaseDataset(Dataset):
         # performs normalization
         xr = (xr - self.scaler["xarray_feature_center"]) / self.scaler["xarray_feature_scale"]
 
-        for feature in ['sro_sum', 'ssro_sum', 'streamflow']:
-            # self.create_histogram(xr, feature)
-            xr[feature] = np.log(xr[feature] + 0.001 + (self.scaler["xarray_feature_center"][feature] / self.scaler["xarray_feature_scale"][feature]))
+        # for feature in ['sro_sum', 'ssro_sum', 'streamflow']:
+        #     self.create_histogram(xr, feature)
+        #     xr[feature] = np.log(xr[feature] + 0.001 + (self.scaler["xarray_feature_center"][feature] / self.scaler["xarray_feature_scale"][feature]))
 
         self._create_lookup_table(xr)
 
-    def create_histogram(self, xr, feature):
-        xr[feature] = np.log(xr[feature] + 0.001 + (self.scaler["xarray_feature_center"][feature] / self.scaler["xarray_feature_scale"][feature]))
-        
+    def create_histogram(self, xr, feature):        
         data = xr[feature].values.flatten()
         data = data[~np.isnan(data)]
-        
-        count = (data <= 0).sum().item()
-        print(f"count <= 0 {feature}: {count}")
 
         hist, bin_edges = np.histogram(data, bins=50)
 
@@ -693,7 +690,7 @@ class BaseDataset(Dataset):
         plt.title(f'Histogram of {feature}')
         plt.xlabel(feature)
         plt.ylabel('Frequency')
-        plt.savefig(f"histograms/log_{feature}_hist.png")
+        plt.savefig(f"histograms/prelog_{feature}_hist.png")
         plt.close()
 
     def _setup_normalization(self, xr: xarray.Dataset):

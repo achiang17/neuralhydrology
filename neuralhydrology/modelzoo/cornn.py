@@ -74,6 +74,13 @@ class coRNN(BaseModel):
         self.n_out = self.output_size
 
         self.head = get_head(cfg=cfg, n_in=cfg.hidden_size, n_out=self.output_size)
+        # self.fc_layers = nn.Sequential(
+        #     nn.Linear(cfg.hidden_size, 32),
+        #     nn.Tanh(),
+        #     nn.Linear(32, 32),
+        #     nn.Tanh(),
+        #     nn.Linear(32, self.output_size)
+        # )
 
     def forward(self, data: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """Perform a forward pass on the coRNN model.
@@ -97,12 +104,9 @@ class coRNN(BaseModel):
         hy = x_d.data.new(batch_size, self.n_hid).zero_()
         hz = x_d.data.new(batch_size, self.n_hid).zero_()
 
-        
 
         output = defaultdict(list)
         for t in range(x_d.size(0)):
-            # transform x_d[t] surface runoff with square root + 1?
-
             # x_d[t][:,0].add_(1).sqrt_()
             hy, hz = self.cell(x_d[t], hy, hz)
             output['hy'].append(hy)
@@ -111,5 +115,6 @@ class coRNN(BaseModel):
         # stack to [batch_size, seq_len, hidden size]
         pred = {key: torch.stack(val,1) for key, val in output.items()}
         pred.update(self.head(pred['hy']))
+        # pred.update({'y_hat': self.fc_layers(pred['hy'])})
         # pred['y_hat'].pow_(2).sub_(1)
         return pred

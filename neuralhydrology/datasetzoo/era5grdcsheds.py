@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import List, Dict, Union, Optional
 
 import pandas as pd
+import numpy as np
 import xarray
 
 from neuralhydrology.datasetzoo.basedataset import BaseDataset
@@ -116,6 +117,9 @@ def load_era5_grdc_sheds_timeseries(data_dir: Path, basin: str) -> pd.DataFrame:
 
     df = pd.read_csv(filepath, parse_dates=['date'])
     df = df.set_index('date')
+
+    for feat in ['sro_sum', 'ssro_sum', 'streamflow']:
+        df[feat] = np.log(df[feat]+0.001)
 
     return df
 

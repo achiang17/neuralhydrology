@@ -232,20 +232,19 @@ class BaseTester(object):
                 # rescale observations
                 feature_scaler = self.scaler["xarray_feature_scale"][self.cfg.target_variables].to_array().values
                 feature_center = self.scaler["xarray_feature_center"][self.cfg.target_variables].to_array().values
-                # original code: y_freq = y[freq] * feature_scaler + feature_center
-                y_freq = feature_scaler * (np.exp(y[freq]) - 0.001)
+                y_freq = y[freq] * feature_scaler + feature_center
+                # y_freq = feature_scaler * (np.square(y[freq]) - 0.001)
 
                 # rescale predictions
                 if y_hat[freq].ndim == 3 or (len(feature_scaler) == 1):
-                    # original code: y_hat_freq = y_hat[freq] * feature_scaler + feature_center
-                    y_hat_freq = feature_scaler * (np.exp(y_hat[freq]) - 0.001)
+                    y_hat_freq = y_hat[freq] * feature_scaler + feature_center
+                    # y_hat_freq = feature_scaler * (np.square(y_hat[freq]) - 0.001)
                 elif y_hat[freq].ndim == 4:
                     # if y_hat has 4 dim and we have multiple features we expand the dimensions for scaling
                     feature_scaler = np.expand_dims(feature_scaler, (0, 1, 3))
                     feature_center = np.expand_dims(feature_center, (0, 1, 3))
-                    # original code y_hat_freq = y_hat[freq] * feature_scaler + feature_center
-                    print(f"enter y_hat has 4")
-                    y_hat_freq = feature_scaler * (np.exp(y_hat[freq]) - 0.001)
+                    y_hat_freq = y_hat[freq] * feature_scaler + feature_center
+                    # y_hat_freq = feature_scaler * (np.square(y_hat[freq]) - 0.001)
                 else:
                     raise RuntimeError(f"Simulations have {y_hat[freq].ndim} dimension. Only 3 and 4 are supported.")
 
