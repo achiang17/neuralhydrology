@@ -195,8 +195,8 @@ class BaseTester(object):
         pbar = tqdm(basins, file=sys.stdout, disable=self._disable_pbar)
         pbar.set_description('# Validation' if self.period == "validation" else "# Evaluation")
 
+        count = 0
         for basin in pbar:
-
             if self.cfg.cache_validation_data and basin in self.cached_datasets.keys():
                 ds = self.cached_datasets[basin]
             else:
@@ -224,6 +224,7 @@ class BaseTester(object):
             if isinstance(seq_length, int):
                 seq_length = {ds.frequencies[0]: seq_length}
             lowest_freq = sort_frequencies(ds.frequencies)[0]
+
             for freq in ds.frequencies:
                 if predict_last_n[freq] == 0:
                     continue  # this frequency is not being predicted
@@ -233,18 +234,18 @@ class BaseTester(object):
                 feature_scaler = self.scaler["xarray_feature_scale"][self.cfg.target_variables].to_array().values
                 feature_center = self.scaler["xarray_feature_center"][self.cfg.target_variables].to_array().values
                 y_freq = y[freq] * feature_scaler + feature_center
-                # y_freq = feature_scaler * (np.square(y[freq]) - 0.001)
+                # y_freq = np.exp(y_freq) - 0.001
 
                 # rescale predictions
                 if y_hat[freq].ndim == 3 or (len(feature_scaler) == 1):
                     y_hat_freq = y_hat[freq] * feature_scaler + feature_center
-                    # y_hat_freq = feature_scaler * (np.square(y_hat[freq]) - 0.001)
+                    # y_hat_freq = np.exp(y_hat_freq) - 0.001
                 elif y_hat[freq].ndim == 4:
                     # if y_hat has 4 dim and we have multiple features we expand the dimensions for scaling
                     feature_scaler = np.expand_dims(feature_scaler, (0, 1, 3))
                     feature_center = np.expand_dims(feature_center, (0, 1, 3))
                     y_hat_freq = y_hat[freq] * feature_scaler + feature_center
-                    # y_hat_freq = feature_scaler * (np.square(y_hat[freq]) - 0.001)
+                    # y_hat_freq = np.exp(y_hat_freq) - 0.001
                 else:
                     raise RuntimeError(f"Simulations have {y_hat[freq].ndim} dimension. Only 3 and 4 are supported.")
 
@@ -271,6 +272,7 @@ class BaseTester(object):
                         pd.DatetimeIndex(pd.date_range(xr["date"].values[0], xr["date"].values[-1], freq=lowest_freq),
                                          name='date')
                 })
+
                 results[basin][freq]['xr'] = xr
 
                 # create datetime range at the current frequency
@@ -328,6 +330,7 @@ class BaseTester(object):
                                 experiment_logger.log_step(**values)
                             for k, v in values.items():
                                 results[basin][freq][k] = v
+
 
         # convert default dict back to normal Python dict to avoid unexpected behavior when trying to access
         # a non-existing basin
